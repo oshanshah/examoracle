@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ExamOracle AI</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            margin: 40px;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+
+        h1 {
+            color: #38bdf8;
+        }
+
+        form {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        input, button {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        input {
+            background: #334155;
+            color: white;
+        }
+
+        button {
+            background-color: #38bdf8;
+            color: black;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0ea5e9;
+        }
+
+        .box {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-x: hidden;
+            font-family: "Courier New", monospace;
+            font-size: 14px;
+            color: #cbd5e1;
+            line-height: 1.7;
+        }
+
+        .topic-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #2d3f55;
+            font-size: 14px;
+            font-family: "Courier New", monospace;
+        }
+
+        .topic-line:last-child { border-bottom: none; }
+        .topic-name { color: #cbd5e1; }
+        .topic-pct  { color: #38bdf8; min-width: 40px; text-align: right; }
+
+        .coverage-summary {
+            font-family: "Courier New", monospace;
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #94a3b8;
+        }
+
+        .coverage-summary span {
+            color: #68d391;
+            font-weight: bold;
+        }
+
+        .coverage-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 0;
+            font-family: "Courier New", monospace;
+            font-size: 13px;
+        }
+
+        .dot-covered { color: #68d391; }
+        .dot-missed  { color: #fc8181; }
+    </style>
+</head>
+
+<body>
+
+<h1>🎓 ExamOracle AI</h1>
+
+<form action="/predict" method="post" enctype="multipart/form-data">
+
+    <label><b>Subject:</b></label>
+    <input type="text" name="subject" required>
+
+    <br><br>
+
+    <label><b>Upload PDFs:</b></label>
+    <input type="file" name="files" multiple>
+
+    <br><br>
+
+    <button type="submit">Generate Paper</button>
+
+</form>
+
+{% if result %}
+
+<div class="box">
+    <h2>📊 Weightage</h2>
+    <br>
+    <div id="weightage-list"></div>
+    <div id="weightage-data" data-json='{{ result.weightage | tojson }}'></div>
+</div>
+
+{% if result.coverage %}
+<div class="box">
+    <h2>✅ Topic Coverage</h2>
+    <br>
+    <div class="coverage-summary">
+        <span>{{ result.coverage.coverage_pct }}%</span> of topics covered in the paper
+        ({{ result.coverage.covered | length }} / {{ (result.coverage.covered | length) + (result.coverage.missed | length) }})
+    </div>
+    {% for topic in result.coverage.covered %}
+        <div class="coverage-line"><span class="dot-covered">✔</span> {{ topic }}</div>
+    {% endfor %}
+    {% for topic in result.coverage.missed %}
+        <div class="coverage-line"><span class="dot-missed">✘</span> {{ topic }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="box">
+    <h2>📝 Paper</h2>
+    <pre>{{ result.paper }}</pre>
+</div>
+
+<div class="box">
+    <h2>📜 AI Logs (Step-by-Step Reasoning)</h2>
+    <pre>
+{% for log in result.logs %}
+{{ log }}
+{% endfor %}
+    </pre>
+</div>
+
+<script>
+    const raw = document.getElementById('weightage-data').dataset.json;
+    const data = JSON.parse(raw);
+    const container = document.getElementById('weightage-list');
+    Object.entries(data)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([topic, pct]) => {
+            container.innerHTML += `
+                <div class="topic-line">
+                    <span class="topic-name">${topic}</span>
+                    <span class="topic-pct">${pct}%</span>
+                </div>`;
+        });
+</script>
+
+{% endif %}
+
+</body>
+</html>
